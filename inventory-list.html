@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CPO Management</title>
+    <!--tailwind-->
+    <link href="src/output.css" rel="stylesheet" />
+    <!--fonts-->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=League+Gothic&family=Lexend:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <!--icons-->
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/4.0.0/uicons-bold-rounded/css/uicons-bold-rounded.css"
+    />
+  </head>
+  <body class="font-lexend text-neutral-800">
+    <!--main container-->
+    <div class="flex flex-col h-screen bg-neutral-50">
+      <!--topnav-->
+      <div class="bg-primary text-base-100 h-16 px-20 flex items-center">
+        <div>
+          <h1 class="font-black text-xl">CPO MANAGER</h1>
+        </div>
+        <div class="flex-1 flex justify-center">
+          <ul class="menu menu-horizontal space-x-6">
+            <li><a class="navItem" href="index.html">Home</a></li>
+            <li>
+              <a class="navItem navActive" href="inventory-dash.html"
+                >Inventory</a
+              >
+            </li>
+            <li>
+              <a class="navItem" href="workstudies-dash.html">Workstudies</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <a class="btn bg-base-100 border-0 shadow-none w-30">Login</a>
+        </div>
+      </div>
+      <!--submenu-->
+      <div class="bg-base-100 h-16 flex items-center px-60 shadow-sm">
+        <div role="tablist" class="tabs tabs-border h-full space-x-6">
+          <a role="tab" class="tab" href="inventory-dash.html">Overview</a>
+          <a role="tab" class="tab tab-active" href="inventory-list.html"
+            >Inventory</a
+          >
+          <a role="tab" class="tab" href="inventory-orders.html">Orders</a>
+        </div>
+      </div>
+      <!--main-->
+      <div class="flex-1 py-10 overflow-y-auto">
+        <!--header-->
+        <div class="flex items-center justify-between px-60">
+          <h1 id="itemCount" class="font-bold">0 items</h1>
+          <div>
+            <label class="input w-80 rounded-full">
+              <i class="fi fi-br-search pt-1 opacity-60"></i>
+              <input
+                id="searchInput"
+                type="search"
+                class="grow"
+                placeholder="Search"
+              />
+            </label>
+          </div>
+        </div>
+        <!--body-->
+        <div class="px-60">
+          <ul
+            id="inventoryList"
+            class="list bg-base-100 rounded-box shadow-sm mt-4"
+          >
+            <li class="list-row">
+              <div
+                class="flex items-center justify-center py-6 w-full opacity-60"
+              >
+                Loading inventory...
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- item drawer backdrop -->
+    <div
+      id="itemDrawerBackdrop"
+      class="fixed inset-0 bg-black/30 opacity-0 pointer-events-none transition-opacity duration-200 z-40"
+    ></div>
+
+    <!-- item drawer -->
+    <aside
+      id="itemDrawer"
+      class="fixed top-0 right-0 h-full w-full max-w-xl bg-base-100 shadow-2xl translate-x-full transition-transform duration-300 z-50 flex flex-col"
+    >
+      <div
+        class="flex items-center justify-between px-6 py-5 border-b border-neutral-200"
+      >
+        <div>
+          <p class="text-xs uppercase tracking-wide opacity-50 font-bold">
+            Inventory Item
+          </p>
+          <h2 id="drawerItemName" class="text-2xl font-black">Item Name</h2>
+        </div>
+        <button
+          id="closeDrawerBtn"
+          type="button"
+          class="btn btn-ghost btn-circle"
+          aria-label="Close details drawer"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-neutral-50 rounded-2xl p-4">
+            <p class="text-xs uppercase opacity-50 font-bold">Category</p>
+            <p id="drawerCategory" class="mt-1 font-bold text-lg">—</p>
+          </div>
+
+          <div class="bg-neutral-50 rounded-2xl p-4">
+            <p class="text-xs uppercase opacity-50 font-bold">Supplier</p>
+            <p id="drawerSupplier" class="mt-1 font-bold text-lg">—</p>
+          </div>
+
+          <div class="bg-neutral-50 rounded-2xl p-4">
+            <p class="text-xs uppercase opacity-50 font-bold">
+              Minimum Quantity
+            </p>
+            <p id="drawerMinQ" class="mt-1 font-bold text-lg">0</p>
+          </div>
+
+          <div class="bg-neutral-50 rounded-2xl p-4">
+            <p class="text-xs uppercase opacity-50 font-bold">Total Quantity</p>
+            <div
+              id="drawerTotalQ"
+              class="mt-2 inline-flex rounded-full px-4 py-2 font-bold"
+            >
+              0
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-black text-lg mb-3">Location Quantities</h3>
+          <div class="space-y-3">
+            <div
+              class="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3"
+            >
+              <span>Storage A</span>
+              <span id="drawerStorageA" class="font-bold">0</span>
+            </div>
+
+            <div
+              class="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3"
+            >
+              <span>Janitor Closet</span>
+              <span id="drawerJanitor" class="font-bold">0</span>
+            </div>
+
+            <div
+              class="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3"
+            >
+              <span>Staff Lounge</span>
+              <span id="drawerStaffLounge" class="font-bold">0</span>
+            </div>
+
+            <div
+              class="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3"
+            >
+              <span>Student Lounge</span>
+              <span id="drawerStudentLounge" class="font-bold">0</span>
+            </div>
+
+            <div
+              class="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3"
+            >
+              <span>Mail Room</span>
+              <span id="drawerMailRoom" class="font-bold">0</span>
+            </div>
+
+            <div
+              class="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3"
+            >
+              <span>Kyle's Office</span>
+              <span id="drawerKyleOffice" class="font-bold">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <script>
+      // -----------------------------
+      // AIRTABLE CONFIG
+      // -----------------------------
+      const AIRTABLE_TOKEN =
+        "patBXOO9qSPy0FJ3U.64d625dbfc50592451f7b40fbaed41287b09db0e51d26e5b23d0effcfcefb9fd";
+      const BASE_ID = "apptUAgpH6UuhPwYy";
+      const TABLE_NAME = "inventory";
+
+      // -----------------------------
+      // DOM REFERENCES
+      // -----------------------------
+      const inventoryList = document.getElementById("inventoryList");
+      const itemCount = document.getElementById("itemCount");
+      const searchInput = document.getElementById("searchInput");
+
+      let inventoryItems = [];
+
+      const itemDrawer = document.getElementById("itemDrawer");
+      const itemDrawerBackdrop = document.getElementById("itemDrawerBackdrop");
+      const closeDrawerBtn = document.getElementById("closeDrawerBtn");
+
+      const drawerItemName = document.getElementById("drawerItemName");
+      const drawerCategory = document.getElementById("drawerCategory");
+      const drawerSupplier = document.getElementById("drawerSupplier");
+      const drawerMinQ = document.getElementById("drawerMinQ");
+      const drawerTotalQ = document.getElementById("drawerTotalQ");
+
+      const drawerStorageA = document.getElementById("drawerStorageA");
+      const drawerJanitor = document.getElementById("drawerJanitor");
+      const drawerStaffLounge = document.getElementById("drawerStaffLounge");
+      const drawerStudentLounge = document.getElementById(
+        "drawerStudentLounge",
+      );
+      const drawerMailRoom = document.getElementById("drawerMailRoom");
+      const drawerKyleOffice = document.getElementById("drawerKyleOffice");
+
+      // -----------------------------
+      // FETCH INVENTORY FROM AIRTABLE
+      // -----------------------------
+      async function loadInventory() {
+        try {
+          inventoryList.innerHTML = `
+        <li class="list-row">
+          <div class="flex items-center justify-center py-6 w-full opacity-60">
+            Loading inventory...
+          </div>
+        </li>
+      `;
+
+          const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?sort[0][field]=item_name&sort[0][direction]=asc`;
+
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Airtable request failed: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          inventoryItems = data.records.map((record) => ({
+            id: record.id,
+            item_name: record.fields.item_name || "Unnamed Item",
+            category: record.fields.category || "Uncategorized",
+            supplier: record.fields.supplier || "—",
+            min_q: record.fields.min_q ?? 0,
+            total_q: record.fields.total_q ?? 0,
+            stock_status: record.fields.stock_status || "GOOD",
+            storage_a_q: record.fields.storage_a_q ?? 0,
+            janitor_q: record.fields.janitor_q ?? 0,
+            staff_lounge_q: record.fields.staff_lounge_q ?? 0,
+            student_lounge_q: record.fields.student_lounge_q ?? 0,
+            mail_room_q: record.fields.mail_room_q ?? 0,
+            kyle_office_q: record.fields.kyle_office_q ?? 0,
+          }));
+
+          renderInventory(inventoryItems);
+        } catch (error) {
+          console.error("Error loading inventory:", error);
+          inventoryList.innerHTML = `
+        <li class="list-row">
+          <div class="flex items-center justify-center py-6 w-full text-red-600">
+            Failed to load inventory.
+          </div>
+        </li>
+      `;
+          itemCount.textContent = "0 items";
+        }
+      }
+
+      // -----------------------------
+      // RENDER INVENTORY LIST
+      // -----------------------------
+
+      function getStatusColor(status) {
+        switch ((status || "").toUpperCase()) {
+          case "LOW":
+            return "bg-red-400 text-white";
+          case "OVER":
+            return "bg-blue-400 text-white";
+          case "GOOD":
+            return "bg-lime-400 text-neutral-900";
+          default:
+            return "bg-neutral-100 text-neutral-800";
+        }
+      }
+
+      function renderInventory(items) {
+        itemCount.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
+
+        if (!items.length) {
+          inventoryList.innerHTML = `
+        <li class="list-row">
+          <div class="flex items-center justify-center py-6 w-full opacity-60">
+            No inventory items found.
+          </div>
+        </li>
+      `;
+          return;
+        }
+
+        inventoryList.innerHTML = items
+          .map(
+            (item) => `
+      <li
+        class="list-row grid grid-cols-3 pl-10 cursor-pointer hover:bg-neutral-50 transition-colors"
+        onclick="openItemDrawer('${item.id}')"
+      >
+        <div class="flex items-center mr-16">
+          <h1 class="font-bold text-lg">${escapeHtml(item.item_name)}</h1>
+        </div>
+        <div class="flex items-center">
+          <h2 class="opacity-60">${escapeHtml(item.category)}</h2>
+        </div>
+        <div class="flex items-center justify-center">
+          <div class="${getStatusColor(item.stock_status)} w-20 text-center rounded-full text-md py-2 font-bold">
+            ${item.total_q}
+          </div>
+        </div>
+      </li>
+    `,
+          )
+          .join("");
+      }
+
+      // -----------------------------
+      // SEARCH FILTER
+      // -----------------------------
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim().toLowerCase();
+
+        const filtered = inventoryItems.filter((item) => {
+          return (
+            item.item_name.toLowerCase().includes(query) ||
+            item.category.toLowerCase().includes(query)
+          );
+        });
+
+        renderInventory(filtered);
+      });
+
+      // -----------------------------
+      // HELPERS
+      // -----------------------------
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function openItemDrawer(itemId) {
+        const item = inventoryItems.find((entry) => entry.id === itemId);
+        if (!item) return;
+
+        drawerItemName.textContent = item.item_name;
+        drawerCategory.textContent = item.category;
+        drawerSupplier.textContent = item.supplier;
+        drawerMinQ.textContent = item.min_q;
+
+        drawerTotalQ.className = `${getStatusColor(item.stock_status)} mt-2 inline-flex rounded-full px-4 py-2 font-bold`;
+        drawerTotalQ.textContent = item.total_q;
+
+        drawerStorageA.textContent = item.storage_a_q;
+        drawerJanitor.textContent = item.janitor_q;
+        drawerStaffLounge.textContent = item.staff_lounge_q;
+        drawerStudentLounge.textContent = item.student_lounge_q;
+        drawerMailRoom.textContent = item.mail_room_q;
+        drawerKyleOffice.textContent = item.kyle_office_q;
+
+        itemDrawer.classList.remove("translate-x-full");
+        itemDrawerBackdrop.classList.remove("opacity-0", "pointer-events-none");
+        document.body.classList.add("overflow-hidden");
+      }
+
+      function closeItemDrawer() {
+        itemDrawer.classList.add("translate-x-full");
+        itemDrawerBackdrop.classList.add("opacity-0", "pointer-events-none");
+        document.body.classList.remove("overflow-hidden");
+      }
+
+      closeDrawerBtn.addEventListener("click", closeItemDrawer);
+      itemDrawerBackdrop.addEventListener("click", closeItemDrawer);
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeItemDrawer();
+        }
+      });
+
+      // -----------------------------
+      // INIT
+      // -----------------------------
+      loadInventory();
+    </script>
+  </body>
+</html>

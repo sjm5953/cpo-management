@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CPO Management</title>
+    <!--tailwind-->
+    <link href="src/output.css" rel="stylesheet" />
+    <!--fonts-->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=League+Gothic&family=Lexend:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <!--icons-->
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/4.0.0/uicons-bold-rounded/css/uicons-bold-rounded.css"
+    />
+  </head>
+  <body class="font-lexend text-neutral-800">
+    <!--main container-->
+    <div class="flex flex-col h-screen bg-neutral-50">
+      <!--topnav-->
+      <div class="bg-primary text-base-100 h-16 px-20 flex items-center">
+        <div>
+          <h1 class="font-black text-xl">CPO MANAGER</h1>
+        </div>
+        <div class="flex-1 flex justify-center">
+          <ul class="menu menu-horizontal space-x-6">
+            <li><a class="navItem" href="index.html">Home</a></li>
+            <li>
+              <a class="navItem navActive" href="inventory-dash.html"
+                >Inventory</a
+              >
+            </li>
+            <li>
+              <a class="navItem" href="workstudies-dash.html">Workstudies</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <a class="btn bg-base-100 border-0 shadow-none w-30">Login</a>
+        </div>
+      </div>
+      <!--submenu-->
+      <div class="bg-base-100 h-16 flex items-center px-60 shadow-sm">
+        <div role="tablist" class="tabs tabs-border h-full space-x-6">
+          <a role="tab" class="tab tab-active" href="inventory-dash.html"
+            >Overview</a
+          >
+          <a role="tab" class="tab" href="inventory-list.html">Inventory</a>
+          <a role="tab" class="tab" href="inventory-orders.html">Orders</a>
+        </div>
+      </div>
+      <!--main-->
+      <div class="flex-1 py-10">
+        <div class="grid md:grid-cols-3 px-60 gap-10">
+          <!--low stock-->
+          <div class="bg-base-100 rounded-lg shadow-sm p-8 flex flex-col">
+            <div class="flex justify-between items-center">
+              <h1 class="uppercase font-bold opacity-60 text-md">Low Stock</h1>
+              <a
+                href="inventory-list.html"
+                class="text-xs underline text-primary"
+                >Show All ></a
+              >
+            </div>
+            <ul id="lowStockList" class="flex-grow mt-2">
+              <li
+                class="flex items-center justify-center py-6 opacity-60 text-sm"
+              >
+                Loading...
+              </li>
+            </ul>
+          </div>
+          <!--Pending Orders-->
+          <div class="bg-base-100 rounded-lg shadow-sm p-8 flex flex-col">
+            <div class="flex justify-between items-center">
+              <h1 class="uppercase font-bold opacity-60 text-md">
+                pending Orders
+              </h1>
+              <a href="" class="text-xs underline text-primary">Show All ></a>
+            </div>
+            <ul class="flex-grow mt-2">
+              <li class="flex items-center border-b border-neutral-100 py-2">
+                <div class="">
+                  <h1 class="text-sm font-bold">00/00/00</h1>
+                </div>
+                <div class="flex-1 flex justify-center">
+                  <h2 class="text-sm opacity-60">Supplier</h2>
+                </div>
+                <div
+                  class="bg-neutral-100 rounded-full px-4 py-1 text-xs uppercase"
+                >
+                  status
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const AIRTABLE_TOKEN =
+        "patBXOO9qSPy0FJ3U.64d625dbfc50592451f7b40fbaed41287b09db0e51d26e5b23d0effcfcefb9fd";
+      const BASE_ID = "apptUAgpH6UuhPwYy";
+      const TABLE_NAME = "inventory";
+
+      const lowStockList = document.getElementById("lowStockList");
+
+      async function loadLowStock() {
+        try {
+          const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?sort[0][field]=item_name&sort[0][direction]=asc`;
+
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Airtable request failed: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          const lowStockItems = data.records
+            .map((record) => ({
+              id: record.id,
+              item_name: record.fields.item_name || "Unnamed Item",
+              category: record.fields.category || "Uncategorized",
+              total_q: record.fields.total_q ?? 0,
+              stock_status: record.fields.stock_status || "",
+            }))
+            .filter((item) => item.stock_status.toUpperCase() === "LOW")
+            .slice(0, 3);
+
+          renderLowStock(lowStockItems);
+        } catch (error) {
+          console.error("Error loading low stock items:", error);
+          lowStockList.innerHTML = `
+        <li class="flex items-center justify-center py-6 text-sm text-red-600">
+          Failed to load items
+        </li>
+      `;
+        }
+      }
+
+      function renderLowStock(items) {
+        if (!items.length) {
+          lowStockList.innerHTML = `
+        <li class="flex items-center justify-center py-6 opacity-60 text-sm">
+          No low stock items
+        </li>
+      `;
+          return;
+        }
+
+        lowStockList.innerHTML = items
+          .map(
+            (item) => `
+          <li class="flex items-center border-b border-neutral-100 py-2">
+            <div>
+              <h1 class="text-sm font-bold">${escapeHtml(item.item_name)}</h1>
+            </div>
+            <div class="flex-1 flex justify-center">
+              <h2 class="text-sm opacity-60">${escapeHtml(item.category)}</h2>
+            </div>
+            <div class="${getStatusColor(item.stock_status)} rounded-full px-4 py-1 text-sm">
+              ${item.total_q}
+            </div>
+          </li>
+        `,
+          )
+          .join("");
+      }
+
+      function getStatusColor(status) {
+        switch ((status || "").toUpperCase()) {
+          case "LOW":
+            return "bg-red-400 text-white";
+          case "OVER":
+            return "bg-blue-400 text-white";
+          case "GOOD":
+            return "bg-lime-400 text-neutral-900";
+          default:
+            return "bg-neutral-100 text-neutral-800";
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      loadLowStock();
+    </script>
+  </body>
+</html>

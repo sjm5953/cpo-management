@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CPO Management</title>
+    <!--tailwind-->
+    <link href="src/output.css" rel="stylesheet" />
+    <!--fonts-->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=League+Gothic&family=Lexend:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <!--icons-->
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/4.0.0/uicons-bold-rounded/css/uicons-bold-rounded.css"
+    />
+  </head>
+  <body class="font-lexend text-neutral-800">
+    <!--main container-->
+    <div class="flex flex-col h-screen bg-neutral-50">
+      <!--topnav-->
+      <div class="bg-primary text-base-100 h-16 px-20 flex items-center">
+        <div>
+          <h1 class="font-black text-xl">CPO MANAGER</h1>
+        </div>
+        <div class="flex-1 flex justify-center">
+          <ul class="menu menu-horizontal space-x-6">
+            <li><a class="navItem" href="index.html">Home</a></li>
+            <li>
+              <a class="navItem" href="inventory-dash.html">Inventory</a>
+            </li>
+            <li>
+              <a class="navItem navActive" href="workstudies-dash.html"
+                >Workstudies</a
+              >
+            </li>
+          </ul>
+        </div>
+        <div>
+          <a class="btn bg-base-100 border-0 shadow-none w-30">Login</a>
+        </div>
+      </div>
+      <!--submenu-->
+      <div class="bg-base-100 h-16 flex items-center px-60 shadow-sm">
+        <div role="tablist" class="tabs tabs-border h-full space-x-6">
+          <a role="tab" class="tab" href="workstudies-dash.html">Overview</a>
+          <a role="tab" class="tab tab-active" href="workstudies-active.html"
+            >Active</a
+          >
+          <a role="tab" class="tab" href="workstudies-applicants.html"
+            >Applicants</a
+          >
+        </div>
+      </div>
+      <!--main-->
+      <div class="flex-1 py-10 px-60">
+        <!--header-->
+        <div class="flex items-center justify-between">
+          <div class="flex gap-4 items-center">
+            <h1 class="font-bold text-lg">Active</h1>
+            <h2 class="opacity-60">00</h2>
+          </div>
+          <div>
+            <label class="input w-80 rounded-full">
+              <i class="fi fi-br-search pt-1 opacity-60"></i>
+              <input type="search" class="grow" placeholder="Search" />
+            </label>
+          </div>
+        </div>
+        <!--body-->
+        <div class="">
+          <ul class="list bg-base-100 rounded-box shadow-md mt-4">
+            <li class="list-row">
+              <div class="flex items-center mr-6">
+                <input type="checkbox" class="checkbox checkbox-sm" />
+              </div>
+              <div class="flex items-center mr-12">
+                <h1 class="font-bold text-lg">Smith, John</h1>
+              </div>
+              <div class="flex items-center list-col-grow">
+                <h1 class="opacity-60">john.smith@smail.rasmussen.edu</h1>
+              </div>
+              <button
+                class="btn btn-square btn-ghost border-blue-300 text-blue-300"
+              >
+                <i class="fi fi-br-pencil pt-1"></i>
+              </button>
+              <button
+                class="btn btn-square btn-ghost border-red-300 text-red-300"
+              >
+                <i class="fi fi-br-trash pt-1"></i>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

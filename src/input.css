@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@theme {
+    --font-lexend: "Lexend";
+    --font-calsans: "Cal Sans";
+    --font-league: "League Gothic";
+}
+
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-primary: var(--color-lime-600);
+}
+
+.navItem {
+    border-radius: calc(infinity * 1px);
+}
+
+.navActive {
+    background-color: oklch(from var(--color-base-100) l c h / 0.3);
+}
+
+.tab {
+    height: 100%;
+}
+
+.tab-active::before {
+    border-color: var(--color-primary);
+}
+
+.tab-active {
+    color: var(--color-primary);
+}
