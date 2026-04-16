@@ -49,10 +49,12 @@
       <div class="bg-base-100 h-16 flex items-center px-60 shadow-sm">
         <div role="tablist" class="tabs tabs-border h-full space-x-6">
           <a role="tab" class="tab" href="workstudies-dash.html">Overview</a>
-          <a role="tab" class="tab tab-active" href="workstudies-active.html">
-            Active
-          </a>
-          <a role="tab" class="tab" href="workstudies-applicants.html">
+          <a role="tab" class="tab" href="workstudies-active.html"> Active </a>
+          <a
+            role="tab"
+            class="tab tab-active"
+            href="workstudies-applicants.html"
+          >
             Applicants
           </a>
         </div>
@@ -63,7 +65,7 @@
         <!--header-->
         <div class="flex items-center justify-between">
           <div class="flex gap-4 items-center">
-            <h1 class="font-bold text-lg">Active</h1>
+            <h1 class="font-bold text-lg">Applicants</h1>
             <h2 id="activeCount" class="opacity-60">0</h2>
           </div>
           <div>
@@ -112,7 +114,7 @@
       >
         <div>
           <p class="text-xs uppercase tracking-wide opacity-50 font-bold">
-            Workstudy Record
+            Applicant Record
           </p>
           <h2 id="drawerName" class="text-2xl font-black">Name</h2>
         </div>
@@ -137,6 +139,25 @@
             <p class="text-xs uppercase opacity-50 font-bold">Status</p>
             <p id="drawerStatus" class="mt-1 font-bold text-lg">—</p>
           </div>
+
+          <div class="bg-neutral-50 rounded-2xl p-4">
+            <p class="text-xs uppercase opacity-50 font-bold">App Date</p>
+            <p id="drawerAppDate" class="mt-1 font-bold text-lg">—</p>
+          </div>
+
+          <div class="bg-neutral-50 rounded-2xl p-4">
+            <p class="text-xs uppercase opacity-50 font-bold">
+              First Interview
+            </p>
+            <p id="drawerFirstInterview" class="mt-1 font-bold text-lg">—</p>
+          </div>
+
+          <div class="bg-neutral-50 rounded-2xl p-4">
+            <p class="text-xs uppercase opacity-50 font-bold">
+              Second Interview
+            </p>
+            <p id="drawerSecondInterview" class="mt-1 font-bold text-lg">—</p>
+          </div>
         </div>
 
         <div>
@@ -158,22 +179,6 @@
                 type="button"
                 class="btn btn-square btn-ghost border border-neutral-200 shrink-0"
                 aria-label="Student email action"
-              >
-                <i class="fi fi-br-envelope pt-1"></i>
-              </button>
-            </div>
-
-            <div
-              class="flex items-center justify-between bg-neutral-50 rounded-2xl p-4 gap-4"
-            >
-              <div class="min-w-0">
-                <p class="text-xs uppercase opacity-50 font-bold">Work Email</p>
-                <p id="drawerWorkEmail" class="mt-1 font-medium break-all">—</p>
-              </div>
-              <button
-                type="button"
-                class="btn btn-square btn-ghost border border-neutral-200 shrink-0"
-                aria-label="Work email action"
               >
                 <i class="fi fi-br-envelope pt-1"></i>
               </button>
@@ -206,12 +211,10 @@
       const AIRTABLE_TOKEN =
         "pat8zPyrNT7Awd9A7.e83bdd8ebdef7592930621d05ab3da4b7f85e21184183abbe8c4411c47d681a9";
       const BASE_ID = "appYqZMGk18beV4qI";
-      const TABLE_NAME = "Active Workstudies";
+      const TABLE_NAME = "Applicants";
 
-      const activeWorkstudyList = document.getElementById(
-        "activeWorkstudyList",
-      );
-      const activeCount = document.getElementById("activeCount");
+      const applicantList = document.getElementById("activeWorkstudyList");
+      const applicantCount = document.getElementById("activeCount");
       const searchInput = document.getElementById("searchInput");
 
       const recordDrawer = document.getElementById("recordDrawer");
@@ -223,20 +226,26 @@
       const drawerName = document.getElementById("drawerName");
       const drawerNameField = document.getElementById("drawerNameField");
       const drawerStatus = document.getElementById("drawerStatus");
+      const drawerAppDate = document.getElementById("drawerAppDate");
+      const drawerFirstInterview = document.getElementById(
+        "drawerFirstInterview",
+      );
+      const drawerSecondInterview = document.getElementById(
+        "drawerSecondInterview",
+      );
       const drawerStudentEmail = document.getElementById("drawerStudentEmail");
-      const drawerWorkEmail = document.getElementById("drawerWorkEmail");
       const drawerPersonalEmail = document.getElementById(
         "drawerPersonalEmail",
       );
 
-      let activeWorkstudies = [];
+      let applicants = [];
 
-      async function loadActiveWorkstudies() {
+      async function loadApplicants() {
         try {
-          activeWorkstudyList.innerHTML = `
+          applicantList.innerHTML = `
         <li class="list-row">
           <div class="flex items-center justify-center py-6 w-full opacity-60">
-            Loading active workstudies...
+            Loading applicants...
           </div>
         </li>
       `;
@@ -255,125 +264,105 @@
 
           const data = await response.json();
 
-          activeWorkstudies = data.records
-            .map((record) => ({
-              id: record.id,
-              name: record.fields["Name"] || "Unnamed Student",
-              email: record.fields["Student Email"] || "No email",
-              studentEmail: record.fields["Student Email"] || "—",
-              workEmail: record.fields["Work Email"] || "—",
-              personalEmail: record.fields["Personal Email"] || "—",
-              status: record.fields["Status"] || "—",
-            }))
-            .filter(
-              (item) => !item.status.toLowerCase().includes("terminated"),
-            );
+          applicants = data.records.map((record) => ({
+            id: record.id,
+            name: record.fields["Name"] || "Unnamed Applicant",
+            status: record.fields["Status"] || "—",
+            studentEmail: record.fields["Student Email"] || "—",
+            personalEmail: record.fields["Personal Email"] || "—",
+            appDate: record.fields["App Date"] || "—",
+            firstInterview: record.fields["First Interview"] || "—",
+            secondInterview: record.fields["Second Interview"] || "—",
+          }));
 
-          renderActiveWorkstudies(activeWorkstudies);
+          renderApplicants(applicants);
         } catch (error) {
-          console.error("Error loading active workstudies:", error);
-          activeWorkstudyList.innerHTML = `
+          console.error("Error loading applicants:", error);
+          applicantList.innerHTML = `
         <li class="list-row">
           <div class="flex items-center justify-center py-6 w-full text-red-600">
-            Failed to load active workstudies.
+            Failed to load applicants.
           </div>
         </li>
       `;
-          activeCount.textContent = "0";
+          applicantCount.textContent = "0";
         }
       }
 
-      function renderActiveWorkstudies(items) {
-        activeCount.textContent = items.length;
+      function renderApplicants(items) {
+        applicantCount.textContent = items.length;
 
         if (!items.length) {
-          activeWorkstudyList.innerHTML = `
+          applicantList.innerHTML = `
         <li class="list-row">
           <div class="flex items-center justify-center py-6 w-full opacity-60">
-            No active workstudies found.
+            No applicants found.
           </div>
         </li>
       `;
           return;
         }
 
-        activeWorkstudyList.innerHTML = items
+        applicantList.innerHTML = items
           .map(
             (item) => `
-      <li
-        class="list-row work-study grid grid-cols-[auto_1.2fr_1.4fr_0.8fr_auto] items-center gap-4 cursor-pointer hover:bg-neutral-50 transition-colors"
-        onclick="openRecordDrawer('${item.id}')"
-      >
-        <div class="flex items-center">
-          <input type="checkbox" class="checkbox checkbox-sm mr-4" onclick="event.stopPropagation()" />
-        </div>
-
-        <div class="flex items-center min-w-0">
-          <h1 class="font-bold text-lg truncate">${escapeHtml(item.name)}</h1>
-        </div>
-
-        <div class="flex items-center min-w-0">
-          <h1 class="opacity-60 truncate">${escapeHtml(item.email)}</h1>
-        </div>
-
-        <div class="flex items-center">
-          <h1>${escapeHtml(item.status)}</h1>
-        </div>
-
-        <div class="flex items-center justify-end gap-2">
-          <button
-            class="btn btn-square btn-ghost border-blue-300 text-blue-300"
-            type="button"
-            onclick="event.stopPropagation()"
+          <li
+            class="list-row grid grid-cols-[auto_1.2fr_1.4fr_0.8fr_auto] items-center gap-4 cursor-pointer hover:bg-neutral-50 transition-colors"
+            onclick="openRecordDrawer('${item.id}')"
           >
-            <i class="fi fi-br-pencil pt-1"></i>
-          </button>
-          <button
-            class="btn btn-square btn-ghost border-red-300 text-red-300"
-            type="button"
-            onclick="event.stopPropagation()"
-          >
-            <i class="fi fi-br-trash pt-1"></i>
-          </button>
-        </div>
-      </li>
-    `,
+            <div class="flex items-center">
+              <input type="checkbox" class="checkbox checkbox-sm mr-4" onclick="event.stopPropagation()" />
+            </div>
+
+            <div class="flex items-center min-w-0">
+              <h1 class="font-bold text-lg truncate">${escapeHtml(item.name)}</h1>
+            </div>
+
+            <div class="flex items-center min-w-0">
+              <h1 class="opacity-60 truncate">${escapeHtml(item.studentEmail)}</h1>
+            </div>
+
+            <div class="flex items-center">
+              <h1>${escapeHtml(item.status)}</h1>
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+              <button
+                class="btn btn-square btn-ghost border-blue-300 text-blue-300"
+                type="button"
+                onclick="event.stopPropagation()"
+              >
+                <i class="fi fi-br-pencil pt-1"></i>
+              </button>
+              <button
+                class="btn btn-square btn-ghost border-red-300 text-red-300"
+                type="button"
+                onclick="event.stopPropagation()"
+              >
+                <i class="fi fi-br-trash pt-1"></i>
+              </button>
+            </div>
+          </li>
+        `,
           )
           .join("");
       }
 
-      searchInput.addEventListener("input", () => {
-        const query = searchInput.value.trim().toLowerCase();
-
-        const filtered = activeWorkstudies.filter((item) => {
-          return (
-            item.name.toLowerCase().includes(query) ||
-            item.email.toLowerCase().includes(query) ||
-            item.status.toLowerCase().includes(query)
-          );
-        });
-
-        renderActiveWorkstudies(filtered);
-      });
-
-      function escapeHtml(str) {
-        return String(str)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
-
       function openRecordDrawer(recordId) {
-        const record = activeWorkstudies.find((item) => item.id === recordId);
+        const record = applicants.find((item) => item.id === recordId);
         if (!record) return;
 
         drawerName.textContent = record.name;
         drawerNameField.textContent = record.name;
         drawerStatus.textContent = record.status;
+        drawerAppDate.textContent = formatDate(record.appDate);
+        drawerFirstInterview.textContent = formatDateTime(
+          record.firstInterview,
+        );
+        drawerSecondInterview.textContent = formatDateTime(
+          record.secondInterview,
+        );
         drawerStudentEmail.textContent = record.studentEmail;
-        drawerWorkEmail.textContent = record.workEmail;
         drawerPersonalEmail.textContent = record.personalEmail;
 
         recordDrawer.classList.remove("translate-x-full");
@@ -390,6 +379,20 @@
         document.body.classList.remove("overflow-hidden");
       }
 
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim().toLowerCase();
+
+        const filtered = applicants.filter((item) => {
+          return (
+            item.name.toLowerCase().includes(query) ||
+            item.studentEmail.toLowerCase().includes(query) ||
+            item.status.toLowerCase().includes(query)
+          );
+        });
+
+        renderApplicants(filtered);
+      });
+
       closeDrawerBtn.addEventListener("click", closeRecordDrawer);
       recordDrawerBackdrop.addEventListener("click", closeRecordDrawer);
 
@@ -399,7 +402,32 @@
         }
       });
 
-      loadActiveWorkstudies();
+      function formatDate(value) {
+        if (!value || value === "—") return "—";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+
+        return date.toLocaleDateString();
+      }
+
+      function formatDateTime(value) {
+        if (!value || value === "—") return "—";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+
+        return date.toLocaleString();
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      loadApplicants();
     </script>
   </body>
 </html>

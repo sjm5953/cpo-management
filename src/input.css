@@ -32,3 +32,7 @@
 .tab-active {
     color: var(--color-primary);
 }
+
+.list-row .work-study {
+    grid-template-columns: max-content 1fr 1fr 1fr 1fr;
+}

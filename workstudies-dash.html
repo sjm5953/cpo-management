@@ -44,6 +44,7 @@
           <a class="btn bg-base-100 border-0 shadow-none w-30">Login</a>
         </div>
       </div>
+
       <!--submenu-->
       <div class="bg-base-100 h-16 flex items-center px-60 shadow-sm">
         <div role="tablist" class="tabs tabs-border h-full space-x-6">
@@ -56,6 +57,7 @@
           >
         </div>
       </div>
+
       <!--main-->
       <div class="flex-1 py-10">
         <div class="grid md:grid-cols-3 px-60 gap-10">
@@ -65,40 +67,197 @@
               <h1 class="uppercase font-bold opacity-60 text-md">
                 Upcoming Interviews
               </h1>
-              <a href="" class="text-xs underline text-primary">Show All ></a>
+              <a
+                href="workstudies-applicants.html"
+                class="text-xs underline text-primary"
+                >Show All ></a
+              >
             </div>
-            <ul class="flex-grow mt-2">
-              <li class="flex items-center border-b border-neutral-100 py-2">
-                <div class="flex-1">
-                  <h1 class="text-sm font-bold">Applicant Name</h1>
-                </div>
-                <div class="">
-                  <h2 class="text-sm opacity-60">00/00/00</h2>
-                </div>
+            <ul id="upcomingInterviewsList" class="flex-grow mt-2">
+              <li
+                class="flex items-center justify-center py-6 opacity-60 text-sm"
+              >
+                Loading...
               </li>
             </ul>
           </div>
+
           <!--To Schedule-->
           <div class="bg-base-100 rounded-lg shadow-sm p-8 flex flex-col">
             <div class="flex justify-between items-center">
               <h1 class="uppercase font-bold opacity-60 text-md">
                 To Schedule
               </h1>
-              <a href="" class="text-xs underline text-primary">Show All ></a>
+              <a
+                href="workstudies-applicants.html"
+                class="text-xs underline text-primary"
+                >Show All ></a
+              >
             </div>
-            <ul class="flex-grow mt-2">
-              <li class="flex items-center border-b border-neutral-100 py-2">
-                <div class="flex-1">
-                  <h1 class="text-sm font-bold">Applicant Name</h1>
-                </div>
-                <div class="">
-                  <h2 class="text-sm opacity-60">Type</h2>
-                </div>
+            <ul id="toScheduleList" class="flex-grow mt-2">
+              <li
+                class="flex items-center justify-center py-6 opacity-60 text-sm"
+              >
+                Loading...
               </li>
             </ul>
           </div>
         </div>
       </div>
     </div>
+
+    <script>
+      const AIRTABLE_TOKEN =
+        "pat8zPyrNT7Awd9A7.e83bdd8ebdef7592930621d05ab3da4b7f85e21184183abbe8c4411c47d681a9";
+      const BASE_ID = "appYqZMGk18beV4qI";
+      const TABLE_NAME = "Applicants";
+
+      const upcomingInterviewsList = document.getElementById(
+        "upcomingInterviewsList",
+      );
+      const toScheduleList = document.getElementById("toScheduleList");
+
+      let applicants = [];
+
+      async function loadApplicantsOverview() {
+        try {
+          const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?sort[0][field]=Name&sort[0][direction]=asc`;
+
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Airtable request failed: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          applicants = data.records.map((record) => ({
+            id: record.id,
+            name: record.fields["Name"] || "Unnamed Applicant",
+            status: record.fields["Status"] || "—",
+            firstInterview: record.fields["First Interview"] || null,
+          }));
+
+          renderUpcomingInterviews(applicants);
+          renderToSchedule(applicants);
+        } catch (error) {
+          console.error("Error loading applicants overview:", error);
+
+          upcomingInterviewsList.innerHTML = `
+            <li class="flex items-center justify-center py-6 text-sm text-red-600">
+              Failed to load interviews
+            </li>
+          `;
+
+          toScheduleList.innerHTML = `
+            <li class="flex items-center justify-center py-6 text-sm text-red-600">
+              Failed to load applicants
+            </li>
+          `;
+        }
+      }
+
+      function renderUpcomingInterviews(items) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const upcoming = items
+          .filter((item) => {
+            if (!item.firstInterview) return false;
+            const interviewDate = new Date(item.firstInterview);
+            if (Number.isNaN(interviewDate.getTime())) return false;
+            return interviewDate >= today;
+          })
+          .sort(
+            (a, b) => new Date(a.firstInterview) - new Date(b.firstInterview),
+          )
+          .slice(0, 5);
+
+        if (!upcoming.length) {
+          upcomingInterviewsList.innerHTML = `
+            <li class="flex items-center justify-center py-6 opacity-60 text-sm">
+              No upcoming interviews
+            </li>
+          `;
+          return;
+        }
+
+        upcomingInterviewsList.innerHTML = upcoming
+          .map(
+            (item) => `
+              <li class="flex items-center border-b border-neutral-100 py-2">
+                <div class="flex-1">
+                  <h1 class="text-sm font-bold">${escapeHtml(item.name)}</h1>
+                </div>
+                <div>
+                  <h2 class="text-sm opacity-60">${formatDate(item.firstInterview)}</h2>
+                </div>
+              </li>
+            `,
+          )
+          .join("");
+      }
+
+      function renderToSchedule(items) {
+        const toSchedule = items
+          .filter((item) => {
+            return (
+              item.status === "Application Received" ||
+              item.status === "First Interview - Completed"
+            );
+          })
+          .map((item) => ({
+            ...item,
+            type: item.status === "Application Received" ? "First" : "Second",
+          }))
+          .slice(0, 5);
+
+        if (!toSchedule.length) {
+          toScheduleList.innerHTML = `
+            <li class="flex items-center justify-center py-6 opacity-60 text-sm">
+              Nothing to schedule
+            </li>
+          `;
+          return;
+        }
+
+        toScheduleList.innerHTML = toSchedule
+          .map(
+            (item) => `
+              <li class="flex items-center border-b border-neutral-100 py-2">
+                <div class="flex-1">
+                  <h1 class="text-sm font-bold">${escapeHtml(item.name)}</h1>
+                </div>
+                <div>
+                  <h2 class="text-sm opacity-60">${item.type}</h2>
+                </div>
+              </li>
+            `,
+          )
+          .join("");
+      }
+
+      function formatDate(value) {
+        if (!value) return "—";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleDateString();
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      loadApplicantsOverview();
+    </script>
   </body>
 </html>
