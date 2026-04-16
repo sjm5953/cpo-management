@@ -128,16 +128,11 @@
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-6 space-y-6">
-        <div class="space-y-4">
-          <div class="bg-neutral-50 rounded-2xl p-4">
-            <p class="text-xs uppercase opacity-50 font-bold">Name</p>
-            <p id="drawerNameField" class="mt-1 font-bold text-lg">—</p>
-          </div>
-
+      <div class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
+        <div class="grid grid-cols-2 gap-4">
           <div class="bg-neutral-50 rounded-2xl p-4">
             <p class="text-xs uppercase opacity-50 font-bold">Status</p>
-            <p id="drawerStatus" class="mt-1 font-bold text-lg">—</p>
+            <div id="drawerStatus" class="mt-2">—</div>
           </div>
 
           <div class="bg-neutral-50 rounded-2xl p-4">
@@ -160,7 +155,7 @@
           </div>
         </div>
 
-        <div>
+        <div class="flex-1">
           <h3 class="font-black text-lg mb-3">Email Addresses</h3>
 
           <div class="space-y-3">
@@ -205,8 +200,26 @@
             </div>
           </div>
         </div>
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            id="viewApplicationBtn"
+            type="button"
+            class="btn bg-primary text-base-100 border-0 shadow-none w-full"
+          >
+            View Application
+          </button>
+
+          <button
+            id="viewNotesBtn"
+            type="button"
+            class="btn bg-base-100 text-primary border-primary shadow-none w-full"
+          >
+            View Notes
+          </button>
+        </div>
       </div>
     </aside>
+
     <script>
       const AIRTABLE_TOKEN =
         "pat8zPyrNT7Awd9A7.e83bdd8ebdef7592930621d05ab3da4b7f85e21184183abbe8c4411c47d681a9";
@@ -224,7 +237,6 @@
       const closeDrawerBtn = document.getElementById("closeDrawerBtn");
 
       const drawerName = document.getElementById("drawerName");
-      const drawerNameField = document.getElementById("drawerNameField");
       const drawerStatus = document.getElementById("drawerStatus");
       const drawerAppDate = document.getElementById("drawerAppDate");
       const drawerFirstInterview = document.getElementById(
@@ -233,6 +245,10 @@
       const drawerSecondInterview = document.getElementById(
         "drawerSecondInterview",
       );
+
+      const viewApplicationBtn = document.getElementById("viewApplicationBtn");
+      const viewNotesBtn = document.getElementById("viewNotesBtn");
+
       const drawerStudentEmail = document.getElementById("drawerStudentEmail");
       const drawerPersonalEmail = document.getElementById(
         "drawerPersonalEmail",
@@ -259,7 +275,10 @@
           });
 
           if (!response.ok) {
-            throw new Error(`Airtable request failed: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(
+              `Airtable request failed: ${response.status} - ${errorText}`,
+            );
           }
 
           const data = await response.json();
@@ -273,6 +292,8 @@
             appDate: record.fields["App Date"] || "—",
             firstInterview: record.fields["First Interview"] || "—",
             secondInterview: record.fields["Second Interview"] || "—",
+            applicationUrl: record.fields["Application"]?.[0]?.url || "",
+            notesUrl: record.fields["First Interview Notes"]?.[0]?.url || "",
           }));
 
           renderApplicants(applicants);
@@ -287,6 +308,28 @@
       `;
           applicantCount.textContent = "0";
         }
+      }
+
+      function getStatusPill(status) {
+        const normalized = (status || "").toLowerCase();
+
+        let bgClass = "bg-neutral-200 text-neutral-800";
+
+        if (normalized === "first interview - scheduled") {
+          bgClass = "bg-sky-200 text-sky-800";
+        } else if (normalized === "second interview - initiated") {
+          bgClass = "bg-pink-200 text-pink-800";
+        } else if (normalized === "potential applicant") {
+          bgClass = "bg-neutral-200 text-neutral-800";
+        } else if (normalized === "not moving forward") {
+          bgClass = "bg-red-200 text-red-800";
+        }
+
+        return `
+      <span class="px-3 py-1 rounded-full text-xs font-bold inline-block ${bgClass}">
+        ${escapeHtml(status)}
+      </span>
+    `;
       }
 
       function renderApplicants(items) {
@@ -307,7 +350,7 @@
           .map(
             (item) => `
           <li
-            class="list-row grid grid-cols-[auto_1.2fr_1.4fr_0.8fr_auto] items-center gap-4 cursor-pointer hover:bg-neutral-50 transition-colors"
+            class="list-row grid grid-cols-[auto_1fr_0.8fr_1.4fr_auto] items-center gap-4 cursor-pointer hover:bg-neutral-50 transition-colors"
             onclick="openRecordDrawer('${item.id}')"
           >
             <div class="flex items-center">
@@ -318,12 +361,12 @@
               <h1 class="font-bold text-lg truncate">${escapeHtml(item.name)}</h1>
             </div>
 
-            <div class="flex items-center min-w-0">
-              <h1 class="opacity-60 truncate">${escapeHtml(item.studentEmail)}</h1>
+            <div class="flex items-center">
+              ${getStatusPill(item.status)}
             </div>
 
-            <div class="flex items-center">
-              <h1>${escapeHtml(item.status)}</h1>
+            <div class="flex items-center min-w-0">
+              <h1 class="opacity-60 truncate">${escapeHtml(item.studentEmail)}</h1>
             </div>
 
             <div class="flex items-center justify-end gap-2">
@@ -353,8 +396,7 @@
         if (!record) return;
 
         drawerName.textContent = record.name;
-        drawerNameField.textContent = record.name;
-        drawerStatus.textContent = record.status;
+        drawerStatus.innerHTML = getStatusPill(record.status);
         drawerAppDate.textContent = formatDate(record.appDate);
         drawerFirstInterview.textContent = formatDateTime(
           record.firstInterview,
@@ -364,6 +406,32 @@
         );
         drawerStudentEmail.textContent = record.studentEmail;
         drawerPersonalEmail.textContent = record.personalEmail;
+
+        // Application button
+        if (record.applicationUrl) {
+          viewApplicationBtn.disabled = false;
+          viewApplicationBtn.classList.remove("btn-disabled", "opacity-50");
+          viewApplicationBtn.onclick = () => {
+            window.open(record.applicationUrl, "_blank", "noopener,noreferrer");
+          };
+        } else {
+          viewApplicationBtn.disabled = true;
+          viewApplicationBtn.classList.add("btn-disabled", "opacity-50");
+          viewApplicationBtn.onclick = null;
+        }
+
+        // Notes button
+        if (record.notesUrl) {
+          viewNotesBtn.disabled = false;
+          viewNotesBtn.classList.remove("btn-disabled", "opacity-50");
+          viewNotesBtn.onclick = () => {
+            window.open(record.notesUrl, "_blank", "noopener,noreferrer");
+          };
+        } else {
+          viewNotesBtn.disabled = true;
+          viewNotesBtn.classList.add("btn-disabled", "opacity-50");
+          viewNotesBtn.onclick = null;
+        }
 
         recordDrawer.classList.remove("translate-x-full");
         recordDrawerBackdrop.classList.remove(
@@ -406,7 +474,6 @@
         if (!value || value === "—") return "—";
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return value;
-
         return date.toLocaleDateString();
       }
 
@@ -414,7 +481,6 @@
         if (!value || value === "—") return "—";
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return value;
-
         return date.toLocaleString();
       }
 

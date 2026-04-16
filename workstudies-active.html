@@ -61,12 +61,17 @@
       <!--main-->
       <div class="flex-1 py-10 px-60 overflow-y-auto">
         <!--header-->
+        <!--header-->
         <div class="flex items-center justify-between">
+          <!-- LEFT -->
           <div class="flex gap-4 items-center">
             <h1 class="font-bold text-lg">Active</h1>
             <h2 id="activeCount" class="opacity-60">0</h2>
           </div>
-          <div>
+
+          <!-- RIGHT -->
+          <div class="flex items-center gap-3">
+            <!-- Search FIRST -->
             <label class="input w-80 rounded-full">
               <i class="fi fi-br-search pt-1 opacity-60"></i>
               <input
@@ -76,6 +81,37 @@
                 placeholder="Search"
               />
             </label>
+
+            <!-- Options dropdown SECOND -->
+            <div class="dropdown dropdown-end">
+              <button
+                id="actionsMenuBtn"
+                tabindex="0"
+                type="button"
+                class="btn bg-base-100 text-base-100 border border-primary text-primary shadow-none text-xl px-4"
+              >
+                ...
+              </button>
+
+              <ul
+                tabindex="0"
+                class="dropdown-content menu bg-base-100 rounded-box z-[60] w-52 p-2 shadow-lg border border-neutral-200"
+              >
+                <li>
+                  <button id="emailSelectedBtn" type="button">
+                    Email Selected
+                  </button>
+                </li>
+                <li>
+                  <button id="selectAllBtn" type="button">Select All</button>
+                </li>
+                <li>
+                  <button id="unselectAllBtn" type="button">
+                    Unselect All
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -214,6 +250,10 @@
       const activeCount = document.getElementById("activeCount");
       const searchInput = document.getElementById("searchInput");
 
+      const emailSelectedBtn = document.getElementById("emailSelectedBtn");
+      const selectAllBtn = document.getElementById("selectAllBtn");
+      const unselectAllBtn = document.getElementById("unselectAllBtn");
+
       const recordDrawer = document.getElementById("recordDrawer");
       const recordDrawerBackdrop = document.getElementById(
         "recordDrawerBackdrop",
@@ -241,7 +281,9 @@
         </li>
       `;
 
-          const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?sort[0][field]=Name&sort[0][direction]=asc`;
+          const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+            TABLE_NAME,
+          )}?sort[0][field]=Name&sort[0][direction]=asc`;
 
           const response = await fetch(url, {
             headers: {
@@ -250,7 +292,10 @@
           });
 
           if (!response.ok) {
-            throw new Error(`Airtable request failed: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(
+              `Airtable request failed: ${response.status} - ${errorText}`,
+            );
           }
 
           const data = await response.json();
@@ -283,6 +328,24 @@
         }
       }
 
+      function getStatusPill(status) {
+        const normalized = (status || "").toLowerCase();
+
+        let bgClass = "bg-neutral-200 text-neutral-800";
+
+        if (normalized === "active") {
+          bgClass = "bg-lime-200 text-lime-800";
+        } else if (normalized === "concern") {
+          bgClass = "bg-amber-200 text-amber-800";
+        }
+
+        return `
+      <span class="px-3 py-1 rounded-full text-xs font-bold inline-block ${bgClass}">
+        ${escapeHtml(status)}
+      </span>
+    `;
+      }
+
       function renderActiveWorkstudies(items) {
         activeCount.textContent = items.length;
 
@@ -300,69 +363,51 @@
         activeWorkstudyList.innerHTML = items
           .map(
             (item) => `
-      <li
-        class="list-row work-study grid grid-cols-[auto_1.2fr_1.4fr_0.8fr_auto] items-center gap-4 cursor-pointer hover:bg-neutral-50 transition-colors"
-        onclick="openRecordDrawer('${item.id}')"
-      >
-        <div class="flex items-center">
-          <input type="checkbox" class="checkbox checkbox-sm mr-4" onclick="event.stopPropagation()" />
-        </div>
-
-        <div class="flex items-center min-w-0">
-          <h1 class="font-bold text-lg truncate">${escapeHtml(item.name)}</h1>
-        </div>
-
-        <div class="flex items-center min-w-0">
-          <h1 class="opacity-60 truncate">${escapeHtml(item.email)}</h1>
-        </div>
-
-        <div class="flex items-center">
-          <h1>${escapeHtml(item.status)}</h1>
-        </div>
-
-        <div class="flex items-center justify-end gap-2">
-          <button
-            class="btn btn-square btn-ghost border-blue-300 text-blue-300"
-            type="button"
-            onclick="event.stopPropagation()"
+          <li
+            class="list-row work-study grid grid-cols-[auto_1.2fr_1.4fr_0.8fr_auto] items-center gap-4 cursor-pointer hover:bg-neutral-50 transition-colors"
+            onclick="openRecordDrawer('${item.id}')"
           >
-            <i class="fi fi-br-pencil pt-1"></i>
-          </button>
-          <button
-            class="btn btn-square btn-ghost border-red-300 text-red-300"
-            type="button"
-            onclick="event.stopPropagation()"
-          >
-            <i class="fi fi-br-trash pt-1"></i>
-          </button>
-        </div>
-      </li>
-    `,
+            <div class="flex items-center">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-sm mr-4 workstudy-checkbox"
+                data-record-id="${item.id}"
+                onclick="event.stopPropagation()"
+              />
+            </div>
+
+            <div class="flex items-center min-w-0">
+              <h1 class="font-bold text-lg truncate">${escapeHtml(item.name)}</h1>
+            </div>
+
+            <div class="flex items-center min-w-0">
+              <h1 class="opacity-60 truncate">${escapeHtml(item.email)}</h1>
+            </div>
+
+            <div class="flex items-center">
+              ${getStatusPill(item.status)}
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+              <button
+                class="btn btn-square btn-ghost border-blue-300 text-blue-300"
+                type="button"
+                onclick="event.stopPropagation()"
+              >
+                <i class="fi fi-br-pencil pt-1"></i>
+              </button>
+              <button
+                class="btn btn-square btn-ghost border-red-300 text-red-300"
+                type="button"
+                onclick="event.stopPropagation()"
+              >
+                <i class="fi fi-br-trash pt-1"></i>
+              </button>
+            </div>
+          </li>
+        `,
           )
           .join("");
-      }
-
-      searchInput.addEventListener("input", () => {
-        const query = searchInput.value.trim().toLowerCase();
-
-        const filtered = activeWorkstudies.filter((item) => {
-          return (
-            item.name.toLowerCase().includes(query) ||
-            item.email.toLowerCase().includes(query) ||
-            item.status.toLowerCase().includes(query)
-          );
-        });
-
-        renderActiveWorkstudies(filtered);
-      });
-
-      function escapeHtml(str) {
-        return String(str)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
       }
 
       function openRecordDrawer(recordId) {
@@ -371,7 +416,7 @@
 
         drawerName.textContent = record.name;
         drawerNameField.textContent = record.name;
-        drawerStatus.textContent = record.status;
+        drawerStatus.innerHTML = getStatusPill(record.status);
         drawerStudentEmail.textContent = record.studentEmail;
         drawerWorkEmail.textContent = record.workEmail;
         drawerPersonalEmail.textContent = record.personalEmail;
@@ -390,6 +435,60 @@
         document.body.classList.remove("overflow-hidden");
       }
 
+      function emailSelectedStudents() {
+        const checkedBoxes = document.querySelectorAll(
+          ".workstudy-checkbox:checked",
+        );
+
+        const selectedEmails = [...checkedBoxes]
+          .map((checkbox) => {
+            const recordId = checkbox.dataset.recordId;
+            const record = activeWorkstudies.find(
+              (item) => item.id === recordId,
+            );
+            return record?.studentEmail || "";
+          })
+          .filter((email) => email && email !== "—");
+
+        const uniqueEmails = [...new Set(selectedEmails)];
+
+        if (!uniqueEmails.length) {
+          alert("Please select at least one record with a student email.");
+          return;
+        }
+
+        const mailtoUrl = `mailto:?bcc=${encodeURIComponent(uniqueEmails.join(","))}`;
+        window.location.href = mailtoUrl;
+      }
+
+      function selectAllVisible() {
+        const checkboxes = document.querySelectorAll(".workstudy-checkbox");
+        checkboxes.forEach((checkbox) => {
+          checkbox.checked = true;
+        });
+      }
+
+      function unselectAllVisible() {
+        const checkboxes = document.querySelectorAll(".workstudy-checkbox");
+        checkboxes.forEach((checkbox) => {
+          checkbox.checked = false;
+        });
+      }
+
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim().toLowerCase();
+
+        const filtered = activeWorkstudies.filter((item) => {
+          return (
+            item.name.toLowerCase().includes(query) ||
+            item.email.toLowerCase().includes(query) ||
+            item.status.toLowerCase().includes(query)
+          );
+        });
+
+        renderActiveWorkstudies(filtered);
+      });
+
       closeDrawerBtn.addEventListener("click", closeRecordDrawer);
       recordDrawerBackdrop.addEventListener("click", closeRecordDrawer);
 
@@ -398,6 +497,27 @@
           closeRecordDrawer();
         }
       });
+
+      if (emailSelectedBtn) {
+        emailSelectedBtn.addEventListener("click", emailSelectedStudents);
+      }
+
+      if (selectAllBtn) {
+        selectAllBtn.addEventListener("click", selectAllVisible);
+      }
+
+      if (unselectAllBtn) {
+        unselectAllBtn.addEventListener("click", unselectAllVisible);
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
 
       loadActiveWorkstudies();
     </script>
