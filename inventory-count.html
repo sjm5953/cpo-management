@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CPO Management</title>
+    <link href="src/output.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=League+Gothic&family=Lexend:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/4.0.0/uicons-bold-rounded/css/uicons-bold-rounded.css"
+    />
+  </head>
+  <body class="font-lexend text-neutral-800">
+    <div class="flex flex-col h-screen bg-neutral-50">
+      <!--topnav-->
+      <div class="bg-primary text-base-100 h-16 px-20 flex items-center">
+        <div>
+          <h1 class="font-black text-xl">CPO MANAGER</h1>
+        </div>
+        <div class="flex-1 flex justify-center">
+          <ul class="menu menu-horizontal space-x-6">
+            <li><a class="navItem" href="index.html">Home</a></li>
+            <li>
+              <a class="navItem navActive" href="inventory-dash.html"
+                >Inventory</a
+              >
+            </li>
+            <li>
+              <a class="navItem" href="workstudies-dash.html">Workstudies</a>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <a class="btn bg-base-100 border-0 shadow-none w-30">Login</a>
+        </div>
+      </div>
+
+      <!--submenu-->
+      <div
+        class="bg-base-100 h-20 flex items-center px-60 shadow-sm justify-between"
+      >
+        <button
+          id="backBtn"
+          type="button"
+          class="btn btn-square text-primary bg-base-100 border-primary"
+        >
+          <i class="fi fi-br-angle-left pt-1"></i>
+        </button>
+
+        <div class="flex flex-col items-center w-100">
+          <h1 id="locationTitle" class="mb-2 text-lg font-bold">
+            Storage A Counts
+          </h1>
+          <progress
+            id="countProgress"
+            class="progress w-full"
+            value="1"
+            max="6"
+          ></progress>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="resetBtn" class="btn bg-neutral-100 border-0 shadow-none">
+            Reset
+          </button>
+          <button
+            id="nextBtn"
+            class="btn bg-primary text-base-100 shadow-none border-0"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      <!--main-->
+      <div class="flex-1 py-10 overflow-y-auto">
+        <div class="px-60">
+          <div class="flex items-center justify-between mb-4">
+            <h1 id="pageTitle" class="font-bold text-2xl">Storage A Counts</h1>
+            <p id="sessionLabel" class="opacity-60 text-sm">
+              Loading session...
+            </p>
+          </div>
+
+          <ul id="countList" class="list bg-base-100 rounded-box shadow-sm">
+            <li class="list-row">
+              <div
+                class="flex items-center justify-center py-6 w-full opacity-60"
+              >
+                Loading count items...
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const AIRTABLE_TOKEN =
+        "patBXOO9qSPy0FJ3U.64d625dbfc50592451f7b40fbaed41287b09db0e51d26e5b23d0effcfcefb9fd";
+      const BASE_ID = "apptUAgpH6UuhPwYy";
+
+      const INVENTORY_TABLE = "inventory";
+      const SESSIONS_TABLE = "sessions";
+      const SESSION_LINE_ITEMS_TABLE = "session_line_items";
+
+      const LOCATIONS = [
+        { field: "storage_a_q", label: "Storage A Counts" },
+        { field: "janitor_q", label: "Janitor Closet Counts" },
+        { field: "staff_lounge_q", label: "Staff Lounge Counts" },
+        { field: "student_lounge_q", label: "Student Lounge Counts" },
+        { field: "mail_room_q", label: "Mail Room Counts" },
+        { field: "kyle_office_q", label: "Kyle's Office Counts" },
+      ];
+
+      const countList = document.getElementById("countList");
+      const sessionLabel = document.getElementById("sessionLabel");
+      const resetBtn = document.getElementById("resetBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      const backBtn = document.getElementById("backBtn");
+      const countProgress = document.getElementById("countProgress");
+      const locationTitle = document.getElementById("locationTitle");
+      const pageTitle = document.getElementById("pageTitle");
+
+      let sessionRecordId = "";
+      let sessionFieldValue = "";
+      let inventoryItems = [];
+      let sessionLineItems = [];
+      let currentLocationIndex = 0;
+
+      function getUrlParam(name) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name) || "";
+      }
+
+      function setUrlStep(stepIndex) {
+        const params = new URLSearchParams(window.location.search);
+        params.set("session", sessionRecordId);
+        params.set("step", String(stepIndex));
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, "", newUrl);
+      }
+
+      function getInitialStep() {
+        const raw = Number(getUrlParam("step"));
+        if (Number.isInteger(raw) && raw >= 0 && raw < LOCATIONS.length) {
+          return raw;
+        }
+        return 0;
+      }
+
+      function getCurrentLocation() {
+        return LOCATIONS[currentLocationIndex];
+      }
+
+      async function airtableFetch(url, options = {}) {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Airtable request failed: ${response.status} - ${errorText}`,
+          );
+        }
+
+        return response.json();
+      }
+
+      async function fetchSessionRecord(recordId) {
+        const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+          SESSIONS_TABLE,
+        )}/${encodeURIComponent(recordId)}`;
+
+        return airtableFetch(url, { method: "GET" });
+      }
+
+      async function fetchInventoryItems() {
+        const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+          INVENTORY_TABLE,
+        )}?sort[0][field]=item_name&sort[0][direction]=asc`;
+
+        const data = await airtableFetch(url, { method: "GET" });
+
+        return data.records.map((record) => ({
+          airtableRecordId: record.id,
+          item_name: record.fields.item_name || "Unnamed Item",
+          unit: record.fields.unit || "—",
+        }));
+      }
+
+      async function fetchAllSessionLineItems() {
+        let allRecords = [];
+        let offset = "";
+
+        do {
+          const url = new URL(
+            `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+              SESSION_LINE_ITEMS_TABLE,
+            )}`,
+          );
+
+          url.searchParams.set("sort[0][field]", "item_name");
+          url.searchParams.set("sort[0][direction]", "asc");
+
+          if (offset) {
+            url.searchParams.set("offset", offset);
+          }
+
+          const data = await airtableFetch(url.toString(), { method: "GET" });
+          allRecords = allRecords.concat(data.records);
+          offset = data.offset || "";
+        } while (offset);
+
+        return allRecords;
+      }
+
+      async function fetchSessionLineItemsForSession(sessionIdValue) {
+        const allRecords = await fetchAllSessionLineItems();
+
+        const inventoryNameMap = new Map(
+          inventoryItems.map((item) => [item.airtableRecordId, item.item_name]),
+        );
+
+        return allRecords
+          .map((record) => {
+            const linkedItemIds = record.fields.item_name || [];
+            const linkedItemId = linkedItemIds[0] || "";
+
+            return {
+              id: record.id,
+              session_id: record.fields.session_id || [],
+              item_name: linkedItemIds,
+              item_name_text:
+                inventoryNameMap.get(linkedItemId) || "Unnamed Item",
+              unit: record.fields.unit || "—",
+              storage_a_q: record.fields.storage_a_q ?? "",
+              janitor_q: record.fields.janitor_q ?? "",
+              staff_lounge_q: record.fields.staff_lounge_q ?? "",
+              student_lounge_q: record.fields.student_lounge_q ?? "",
+              mail_room_q: record.fields.mail_room_q ?? "",
+              kyle_office_q: record.fields.kyle_office_q ?? "",
+            };
+          })
+          .filter((item) => item.session_id.includes(sessionIdValue));
+      }
+
+      async function createSessionLineItemsForInventory(
+        sessionIdValue,
+        inventoryRows,
+        existingRows,
+      ) {
+        const existingItemIds = new Set(
+          existingRows
+            .map((row) =>
+              Array.isArray(row.item_name) ? row.item_name[0] : "",
+            )
+            .filter(Boolean),
+        );
+
+        const rowsToCreate = inventoryRows
+          .filter((item) => !existingItemIds.has(item.airtableRecordId))
+          .map((item) => ({
+            fields: {
+              session_id: [sessionIdValue],
+              item_name: [item.airtableRecordId],
+            },
+          }));
+
+        if (!rowsToCreate.length) return;
+
+        for (let i = 0; i < rowsToCreate.length; i += 10) {
+          const batch = rowsToCreate.slice(i, i + 10);
+
+          await airtableFetch(
+            `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+              SESSION_LINE_ITEMS_TABLE,
+            )}`,
+            {
+              method: "POST",
+              body: JSON.stringify({ records: batch }),
+            },
+          );
+        }
+      }
+
+      async function updateSessionLineItem(recordId, fields) {
+        const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+          SESSION_LINE_ITEMS_TABLE,
+        )}/${encodeURIComponent(recordId)}`;
+
+        return airtableFetch(url, {
+          method: "PATCH",
+          body: JSON.stringify({ fields }),
+        });
+      }
+
+      function updateStepUI() {
+        const currentLocation = getCurrentLocation();
+        const isLastStep = currentLocationIndex === LOCATIONS.length - 1;
+
+        locationTitle.textContent = currentLocation.label;
+        pageTitle.textContent = currentLocation.label;
+        countProgress.max = LOCATIONS.length;
+        countProgress.value = currentLocationIndex + 1;
+        nextBtn.textContent = isLastStep ? "Submit" : "Next";
+
+        setUrlStep(currentLocationIndex);
+      }
+
+      function renderCountList(items) {
+        const currentLocation = getCurrentLocation();
+
+        if (!items.length) {
+          countList.innerHTML = `
+            <li class="list-row">
+              <div class="flex items-center justify-center py-6 w-full opacity-60">
+                No count items found.
+              </div>
+            </li>
+          `;
+          return;
+        }
+
+        countList.innerHTML = items
+          .map(
+            (item) => `
+              <li class="list-row grid grid-cols-[1.4fr_120px_160px] gap-4 items-center">
+                <div class="min-w-0">
+                  <h2 class="font-bold truncate">${escapeHtml(item.item_name_text)}</h2>
+                </div>
+
+                <div class="opacity-60 text-sm">
+                  ${escapeHtml(item.unit)}
+                </div>
+
+                ${renderQtyInput(item, currentLocation.field)}
+              </li>
+            `,
+          )
+          .join("");
+
+        bindInputs();
+      }
+
+      function renderQtyInput(item, fieldName) {
+        return `
+          <div>
+            <input
+              type="number"
+              inputmode="numeric"
+              min="0"
+              class="input input-bordered w-full text-center session-line-input"
+              data-record-id="${item.id}"
+              data-field-name="${fieldName}"
+              value="${item[fieldName] ?? ""}"
+            />
+          </div>
+        `;
+      }
+
+      function bindInputs() {
+        const inputs = document.querySelectorAll(".session-line-input");
+
+        inputs.forEach((input) => {
+          input.addEventListener("change", async (event) => {
+            const recordId = event.target.dataset.recordId;
+            const fieldName = event.target.dataset.fieldName;
+            const value =
+              event.target.value === "" ? null : Number(event.target.value);
+
+            event.target.disabled = true;
+
+            try {
+              await updateSessionLineItem(recordId, {
+                [fieldName]: value,
+              });
+
+              const row = sessionLineItems.find((item) => item.id === recordId);
+              if (row) row[fieldName] = value;
+            } catch (error) {
+              console.error("Error updating line item:", error);
+              alert("Could not save that value.");
+            } finally {
+              event.target.disabled = false;
+            }
+          });
+        });
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      async function resetCurrentLocationInputs() {
+        const currentLocation = getCurrentLocation();
+        const confirmed = confirm(
+          `Reset all values for ${currentLocation.label}?`,
+        );
+        if (!confirmed) return;
+
+        try {
+          for (const row of sessionLineItems) {
+            await updateSessionLineItem(row.id, {
+              [currentLocation.field]: null,
+            });
+            row[currentLocation.field] = null;
+          }
+
+          renderCountList(sessionLineItems);
+        } catch (error) {
+          console.error("Error resetting current location inputs:", error);
+          alert("Could not reset this location.");
+        }
+      }
+
+      function handleBack() {
+        if (currentLocationIndex > 0) {
+          currentLocationIndex -= 1;
+          updateStepUI();
+          renderCountList(sessionLineItems);
+          return;
+        }
+
+        window.location.href = "inventory-list.html";
+      }
+
+      function handleNext() {
+        const isLastStep = currentLocationIndex === LOCATIONS.length - 1;
+
+        if (!isLastStep) {
+          currentLocationIndex += 1;
+          updateStepUI();
+          renderCountList(sessionLineItems);
+          return;
+        }
+
+        window.location.href = "inventory-list.html";
+      }
+
+      async function initializePage() {
+        countList.innerHTML = `
+          <li class="list-row">
+            <div class="flex items-center justify-center py-6 w-full opacity-60">
+              Loading count items...
+            </div>
+          </li>
+        `;
+
+        sessionRecordId = getUrlParam("session");
+        currentLocationIndex = getInitialStep();
+
+        if (!sessionRecordId) {
+          sessionLabel.textContent = "Missing session id";
+          countList.innerHTML = `
+            <li class="list-row">
+              <div class="flex items-center justify-center py-6 w-full text-red-600">
+                No session was provided in the URL.
+              </div>
+            </li>
+          `;
+          return;
+        }
+
+        try {
+          const sessionRecord = await fetchSessionRecord(sessionRecordId);
+
+          sessionFieldValue = sessionRecord.id;
+          sessionLabel.textContent = `Session ${
+            sessionRecord.fields.session_id || sessionRecord.id
+          }`;
+
+          inventoryItems = await fetchInventoryItems();
+
+          const existingLineItems =
+            await fetchSessionLineItemsForSession(sessionFieldValue);
+
+          await createSessionLineItemsForInventory(
+            sessionFieldValue,
+            inventoryItems,
+            existingLineItems,
+          );
+
+          sessionLineItems =
+            await fetchSessionLineItemsForSession(sessionFieldValue);
+
+          updateStepUI();
+          renderCountList(sessionLineItems);
+        } catch (error) {
+          console.error("Error initializing count page:", error);
+          sessionLabel.textContent = "Failed to load session";
+          countList.innerHTML = `
+            <li class="list-row">
+              <div class="flex items-center justify-center py-6 w-full text-red-600">
+                Failed to load count data.
+              </div>
+            </li>
+          `;
+        }
+      }
+
+      resetBtn.addEventListener("click", resetCurrentLocationInputs);
+      backBtn.addEventListener("click", handleBack);
+      nextBtn.addEventListener("click", handleNext);
+
+      initializePage();
+    </script>
+  </body>
+</html>

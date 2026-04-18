@@ -56,10 +56,10 @@
       </div>
       <!--main-->
       <div class="flex-1 py-10 overflow-y-auto">
-        <!--header-->
         <div class="flex items-center justify-between px-60">
           <h1 id="itemCount" class="font-bold">0 items</h1>
-          <div>
+
+          <div class="flex items-center gap-3">
             <label class="input w-80 rounded-full">
               <i class="fi fi-br-search pt-1 opacity-60"></i>
               <input
@@ -69,6 +69,26 @@
                 placeholder="Search"
               />
             </label>
+
+            <div class="dropdown dropdown-end">
+              <button
+                id="actionsMenuBtn"
+                tabindex="0"
+                type="button"
+                class="btn bg-base-100 text-primary border border-primary shadow-none text-xl px-4"
+              >
+                ...
+              </button>
+
+              <ul
+                tabindex="0"
+                class="dropdown-content menu bg-base-100 rounded-box z-[60] w-44 p-2 shadow-lg border border-neutral-200"
+              >
+                <li>
+                  <button id="newCountBtn" type="button">New Count</button>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
         <!--body-->
@@ -203,7 +223,8 @@
       const AIRTABLE_TOKEN =
         "patBXOO9qSPy0FJ3U.64d625dbfc50592451f7b40fbaed41287b09db0e51d26e5b23d0effcfcefb9fd";
       const BASE_ID = "apptUAgpH6UuhPwYy";
-      const TABLE_NAME = "inventory";
+      const INVENTORY_TABLE_NAME = "inventory";
+      const SESSIONS_TABLE_NAME = "sessions";
 
       // -----------------------------
       // DOM REFERENCES
@@ -211,6 +232,7 @@
       const inventoryList = document.getElementById("inventoryList");
       const itemCount = document.getElementById("itemCount");
       const searchInput = document.getElementById("searchInput");
+      const newCountBtn = document.getElementById("newCountBtn");
 
       let inventoryItems = [];
 
@@ -246,7 +268,9 @@
         </li>
       `;
 
-          const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?sort[0][field]=item_name&sort[0][direction]=asc`;
+          const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+            INVENTORY_TABLE_NAME,
+          )}?sort[0][field]=item_name&sort[0][direction]=asc`;
 
           const response = await fetch(url, {
             headers: {
@@ -255,7 +279,10 @@
           });
 
           if (!response.ok) {
-            throw new Error(`Airtable request failed: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(
+              `Airtable request failed: ${response.status} - ${errorText}`,
+            );
           }
 
           const data = await response.json();
@@ -291,9 +318,52 @@
       }
 
       // -----------------------------
+      // CREATE NEW COUNT SESSION
+      // -----------------------------
+      async function createNewCountSession() {
+        try {
+          const today = new Date().toISOString().split("T")[0];
+
+          const response = await fetch(
+            `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+              SESSIONS_TABLE_NAME,
+            )}`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                fields: {
+                  session_date: today,
+                },
+              }),
+            },
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+              `Session create failed: ${response.status} - ${errorText}`,
+            );
+          }
+
+          const createdRecord = await response.json();
+          const sessionId = createdRecord.id;
+
+          window.location.href = `inventory-count.html?session=${encodeURIComponent(
+            sessionId,
+          )}`;
+        } catch (error) {
+          console.error("Error creating count session:", error);
+          alert("Could not create a new count session.");
+        }
+      }
+
+      // -----------------------------
       // RENDER INVENTORY LIST
       // -----------------------------
-
       function getStatusColor(status) {
         switch ((status || "").toUpperCase()) {
           case "LOW":
@@ -308,7 +378,9 @@
       }
 
       function renderInventory(items) {
-        itemCount.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
+        itemCount.textContent = `${items.length} item${
+          items.length === 1 ? "" : "s"
+        }`;
 
         if (!items.length) {
           inventoryList.innerHTML = `
@@ -324,23 +396,25 @@
         inventoryList.innerHTML = items
           .map(
             (item) => `
-      <li
-        class="list-row grid grid-cols-3 pl-10 cursor-pointer hover:bg-neutral-50 transition-colors"
-        onclick="openItemDrawer('${item.id}')"
-      >
-        <div class="flex items-center mr-16">
-          <h1 class="font-bold text-lg">${escapeHtml(item.item_name)}</h1>
-        </div>
-        <div class="flex items-center">
-          <h2 class="opacity-60">${escapeHtml(item.category)}</h2>
-        </div>
-        <div class="flex items-center justify-center">
-          <div class="${getStatusColor(item.stock_status)} w-20 text-center rounded-full text-md py-2 font-bold">
-            ${item.total_q}
-          </div>
-        </div>
-      </li>
-    `,
+          <li
+            class="list-row grid grid-cols-3 pl-10 cursor-pointer hover:bg-neutral-50 transition-colors"
+            onclick="openItemDrawer('${item.id}')"
+          >
+            <div class="flex items-center mr-16">
+              <h1 class="font-bold text-lg">${escapeHtml(item.item_name)}</h1>
+            </div>
+            <div class="flex items-center">
+              <h2 class="opacity-60">${escapeHtml(item.category)}</h2>
+            </div>
+            <div class="flex items-center justify-center">
+              <div class="${getStatusColor(
+                item.stock_status,
+              )} w-20 text-center rounded-full text-md py-2 font-bold">
+                ${item.total_q}
+              </div>
+            </div>
+          </li>
+        `,
           )
           .join("");
       }
@@ -382,7 +456,9 @@
         drawerSupplier.textContent = item.supplier;
         drawerMinQ.textContent = item.min_q;
 
-        drawerTotalQ.className = `${getStatusColor(item.stock_status)} mt-2 inline-flex rounded-full px-4 py-2 font-bold`;
+        drawerTotalQ.className = `${getStatusColor(
+          item.stock_status,
+        )} mt-2 inline-flex rounded-full px-4 py-2 font-bold`;
         drawerTotalQ.textContent = item.total_q;
 
         drawerStorageA.textContent = item.storage_a_q;
@@ -411,6 +487,10 @@
           closeItemDrawer();
         }
       });
+
+      if (newCountBtn) {
+        newCountBtn.addEventListener("click", createNewCountSession);
+      }
 
       // -----------------------------
       // INIT

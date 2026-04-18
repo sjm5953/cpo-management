@@ -1741,8 +1741,14 @@
   .mr-16 {
     margin-right: calc(var(--spacing) * 16);
   }
+  .mb-2 {
+    margin-bottom: calc(var(--spacing) * 2);
+  }
   .mb-3 {
     margin-bottom: calc(var(--spacing) * 3);
+  }
+  .mb-4 {
+    margin-bottom: calc(var(--spacing) * 4);
   }
   .status {
     @layer daisyui.l1.l2.l3 {
@@ -1891,6 +1897,9 @@
   .h-16 {
     height: calc(var(--spacing) * 16);
   }
+  .h-20 {
+    height: calc(var(--spacing) * 20);
+  }
   .h-full {
     height: 100%;
   }
@@ -1903,11 +1912,23 @@
   .w-30 {
     width: calc(var(--spacing) * 30);
   }
+  .w-44 {
+    width: calc(var(--spacing) * 44);
+  }
   .w-52 {
     width: calc(var(--spacing) * 52);
   }
+  .w-56 {
+    width: calc(var(--spacing) * 56);
+  }
+  .w-60 {
+    width: calc(var(--spacing) * 60);
+  }
   .w-80 {
     width: calc(var(--spacing) * 80);
+  }
+  .w-100 {
+    width: calc(var(--spacing) * 100);
   }
   .w-full {
     width: 100%;
@@ -1971,14 +1992,11 @@
   .grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .grid-cols-\[auto_1\.2fr_0\.8fr_1\.4fr_auto\] {
-    grid-template-columns: auto 1.2fr 0.8fr 1.4fr auto;
+  .grid-cols-\[1\.2fr_120px_repeat\(6\,90px\)\] {
+    grid-template-columns: 1.2fr 120px repeat(6,90px);
   }
   .grid-cols-\[auto_1\.2fr_1\.4fr_0\.8fr_auto\] {
     grid-template-columns: auto 1.2fr 1.4fr 0.8fr auto;
-  }
-  .grid-cols-\[auto_1\.2fr_1\.4fr_auto\] {
-    grid-template-columns: auto 1.2fr 1.4fr auto;
   }
   .grid-cols-\[auto_1fr_0\.8fr_1\.4fr_auto\] {
     grid-template-columns: auto 1fr 0.8fr 1.4fr auto;
@@ -2141,9 +2159,6 @@
   }
   .bg-red-400 {
     background-color: var(--color-red-400);
-  }
-  .bg-secondary {
-    background-color: var(--color-secondary);
   }
   .bg-sky-200 {
     background-color: var(--color-sky-200);
